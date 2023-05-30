@@ -1,13 +1,11 @@
-package com.example.roomdb.adapter
+package com.example.roomdb.ui.adapter
 
 import android.content.Intent
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import androidx.appcompat.app.AlertDialog
-import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
-import com.example.roomdb.Constans
-import com.example.roomdb.EditActivity
+import com.example.roomdb.utils.Constans
+import com.example.roomdb.ui.EditActivity
 import com.example.roomdb.data.entity.Note
 import com.example.roomdb.databinding.RcItemBinding
 
@@ -23,7 +21,7 @@ class RvAdapter():RecyclerView.Adapter<RvAdapter.MyViewHolder>() {
         fun setData(note: Note){
             binding.rcTvItem.text = note.title
             binding.root.setOnClickListener {
-                val intent = Intent(binding.root.context,EditActivity::class.java)
+                val intent = Intent(binding.root.context, EditActivity::class.java)
                 intent.putExtra(Constans.I_ID_KEY,note.id)
                 intent.putExtra(Constans.I_TITLE_KEY,note.title)
                 intent.putExtra(Constans.I_CONTENT_KEY,note.content)

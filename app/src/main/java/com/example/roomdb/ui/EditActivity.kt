@@ -1,18 +1,21 @@
-package com.example.roomdb
+package com.example.roomdb.ui
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.provider.ContactsContract.CommonDataKinds.Note
-import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import com.example.roomdb.utils.Constans
 import com.example.roomdb.data.NoteDatabase
 import com.example.roomdb.data.dao.NoteDao
+import com.example.roomdb.data.entity.Note
 import com.example.roomdb.databinding.ActivityEditBinding
-import com.google.android.material.snackbar.Snackbar
+import com.example.roomdb.presentation.MainViewModel
 
 class EditActivity : AppCompatActivity() {
+
+    private lateinit var viewModel: MainViewModel
 
     lateinit var dao : NoteDao
     lateinit var binding: ActivityEditBinding
@@ -25,6 +28,11 @@ class EditActivity : AppCompatActivity() {
         setContentView(binding.root)
         dao = NoteDatabase.getInstance(this).getNoteDao()
 
+        viewModel = ViewModelProvider(
+            this,
+            ViewModelProvider.AndroidViewModelFactory(application)
+        ).get(MainViewModel::class.java)
+
         getIntents()
 
         binding.flbtnEdit.setOnClickListener {
@@ -33,23 +41,20 @@ class EditActivity : AppCompatActivity() {
         }
 
         binding.fltbtnSave.setOnClickListener {
-            var etTitle = binding.etTitle.text.toString()
-            var etDesc = binding.etDescription.text.toString()
+            val etTitle = binding.etTitle.text.toString()
+            val etDesc = binding.etDescription.text.toString()
 
 
             if (etTitle.isNotEmpty() && etDesc.isNotEmpty()){
                 if (isState){
                     lifecycleScope.launchWhenResumed {
-                        dao.updateNote(com.example.roomdb.data.entity.Note(id,etTitle,etDesc))
+                        viewModel.updateNote(note = Note(id,etTitle,etDesc))
                     }
-
                     Toast.makeText(this,"Сохранено",Toast.LENGTH_SHORT).show()
-
                 }else{
                     lifecycleScope.launchWhenResumed {
-                        dao.addNote(com.example.roomdb.data.entity.Note(id,etTitle,etDesc))
+                        viewModel.addNote(Note(id,etTitle,etDesc))
                     }
-
                     Toast.makeText(this,"Сохранено",Toast.LENGTH_SHORT).show()
                 }
                 finish()

@@ -1,24 +1,25 @@
-package com.example.roomdb
+package com.example.roomdb.ui
 
 import android.content.Intent
 import android.graphics.Color
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.provider.ContactsContract.CommonDataKinds.Note
 import android.view.View
-import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.widget.SearchView
 import androidx.core.widget.addTextChangedListener
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
-import com.example.roomdb.adapter.RvAdapter
+import com.example.roomdb.ui.adapter.RvAdapter
 import com.example.roomdb.data.NoteDatabase
 import com.example.roomdb.data.dao.NoteDao
 import com.example.roomdb.databinding.ActivityMainBinding
+import com.example.roomdb.presentation.MainViewModel
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
+    private lateinit var viewModel: MainViewModel
     lateinit var binding: ActivityMainBinding
     lateinit var dao: NoteDao
     private val adapter = RvAdapter()
@@ -28,29 +29,47 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         dao = NoteDatabase.getInstance(this).getNoteDao()
 
+        viewModel = ViewModelProvider(
+            this,
+            ViewModelProvider.AndroidViewModelFactory(application)
+        ).get(MainViewModel::class.java)
+
+        initListener()
+        initObservers()
+        initVariables()
 
 
-        binding.searchView.addTextChangedListener {
-            lifecycleScope.launchWhenResumed {
-                adapter.list = dao.searchNotesByTitle(it.toString()).toMutableList()
+
+    }
+
+    private fun initObservers() {
+        viewModel.getAllNotesLiveData.observe(this){
+            if (it.isNotEmpty()) {
+                binding.tvEmpty.visibility = View.GONE
+                adapter.list = it.toMutableList()
+            } else {
+                binding.tvEmpty.visibility = View.VISIBLE
             }
         }
+    }
 
-
+    private fun initListener() {
+        binding.searchView.addTextChangedListener {
+            lifecycleScope.launch {
+                viewModel.searchNoteByTitle(it.toString())
+            }
+        }
         binding.fbtnAdd.setOnClickListener {
             val intent = Intent(this, EditActivity::class.java)
             startActivity(intent)
         }
-
     }
 
-    fun init() {
+    private fun initVariables() {
+        binding.rvMain.adapter = adapter
+
         val swapHelper = getSwapManager()
         swapHelper.attachToRecyclerView(binding.rvMain)
-        binding.rvMain.adapter = adapter
-        lifecycleScope.launchWhenResumed {
-            adapter.list = dao.getAllNotes().toMutableList()
-        }
     }
 
     private fun getSwapManager(): ItemTouchHelper {
@@ -68,9 +87,10 @@ class MainActivity : AppCompatActivity() {
                 val pos = viewHolder.adapterPosition
                 val note : com.example.roomdb.data.entity.Note = adapter.list[pos]
 
-                lifecycleScope.launchWhenResumed {
-                    dao.deleteNote(adapter.list[pos])
+                lifecycleScope.launch {
+                    viewModel.deleteNote(note)
                 }
+
 
                 adapter.list.removeAt(pos)
                 adapter.notifyItemRemoved(pos)
@@ -83,7 +103,7 @@ class MainActivity : AppCompatActivity() {
                     setAction("Назад"){
 
                         lifecycleScope.launchWhenResumed {
-                            dao.addNote(note = note)
+                            viewModel.addNote(note)
                         }
 
                         adapter.list.add(pos,note)
@@ -99,15 +119,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        init()
-
-        lifecycleScope.launchWhenResumed {
-            val getAllNotes = dao.getAllNotes().toMutableList()
-            if (getAllNotes.size > 0) {
-                binding.tvEmpty.visibility = View.GONE
-            } else {
-                binding.tvEmpty.visibility = View.VISIBLE
-            }
+        lifecycleScope.launch {
+            viewModel.getAllNotes()
         }
     }
 }
